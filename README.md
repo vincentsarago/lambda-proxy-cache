@@ -18,7 +18,7 @@ $ pip install lambda-proxy-cache
 Or install from source:
 
 ```bash
-$ git clone https://github.com/vincentsarag/lambda-proxy-cache.git
+$ git clone https://github.com/vincentsarago/lambda-proxy-cache.git
 $ cd lambda-proxy
 $ pip install -U pip
 $ pip install -e .
