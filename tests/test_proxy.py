@@ -1,6 +1,7 @@
 """Test lambda-proxy-cache."""
 
 from mock import Mock
+import pytest
 
 from lambda_proxy_cache import proxy
 from lambda_proxy_cache.backends.base import LambdaProxyCacheBase
@@ -108,3 +109,13 @@ def test_proxy_API_cacheEmpty():
 
     for h in app.log.handlers:
         app.log.removeHandler(h)
+
+
+def test_proxy_API_badcache():
+    """Test proxy with caching."""
+    cache = Mock()
+    with pytest.raises(TypeError):
+        app = proxy.API(name="test", cache_layer=cache)
+
+        for h in app.log.handlers:
+            app.log.removeHandler(h)
