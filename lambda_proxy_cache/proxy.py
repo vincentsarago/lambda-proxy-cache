@@ -12,7 +12,9 @@ from lambda_proxy_cache.backends.base import LambdaProxyCacheBase
 
 def get_hash(**kwargs: Any) -> str:
     """Create hash from dict."""
-    return hashlib.sha224(json.dumps(kwargs, sort_keys=True).encode()).hexdigest()
+    return hashlib.sha224(
+        json.dumps(kwargs, sort_keys=True, default=str).encode()
+    ).hexdigest()
 
 
 class API(LambdaProxyApi):

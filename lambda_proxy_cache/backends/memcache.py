@@ -18,11 +18,11 @@ class MemcachedCache(LambdaProxyCacheBase):
         **kwargs: Dict,
     ):
         """
-        Memcached-backed object.
+        Memcached-backed cache.
 
         Parameters
         ----------
-        host: string, redis host
+        host: string, memcache host
         port: integer
         kwargs: passed directly to bmemcached.Client connection
 
@@ -33,8 +33,14 @@ class MemcachedCache(LambdaProxyCacheBase):
 
     def set(self, key: str, value) -> bool:
         """Set item in Memcached database."""
-        return self.memcache.set(key, value, time=self.timeout)
+        try:
+            return self.memcache.set(key, value, time=self.timeout)
+        except Exception:
+            return False
 
     def get(self, key: str):
         """Get item in Memcached database."""
-        return self.memcache.get(key)
+        try:
+            return self.memcache.get(key)
+        except Exception:
+            return False
