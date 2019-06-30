@@ -48,7 +48,7 @@ jobs:
         - image: circleci/python:3.7.2
           environment:
             - TOXENV=release
-      working_directory: ~/lambda-prox
+      working_directory: ~/lambda-proxy-cache
       steps:
         - checkout
         - run:
