@@ -15,7 +15,7 @@ extra_reqs = {
 
 setup(
     name="lambda-proxy-cache",
-    version="0.0.1",
+    version="0.0.1dev0",
     description=u"Add cache to lambda-proxy",
     long_description=readme,
     long_description_content_type="text/markdown",
