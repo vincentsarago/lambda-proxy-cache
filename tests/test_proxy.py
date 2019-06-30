@@ -25,6 +25,50 @@ with open(json_apigw, "r") as f:
 funct = Mock(__name__="Mock")
 
 
+def test_RouteEntry_default():
+    """Should work as expected."""
+    route = proxy.RouteEntry(funct, "/endpoint/test/<id>")
+    assert route.endpoint == funct
+    assert route.methods == ["GET"]
+    assert not route.cors
+    assert not route.token
+    assert not route.compression
+    assert not route.b64encode
+    assert not route.no_cache
+
+
+def test_RouteEntry_Options():
+    """Should work as expected."""
+    route = proxy.RouteEntry(
+        funct,
+        "/endpoint/test/<id>",
+        ["POST"],
+        cors=True,
+        token="Yo",
+        payload_compression_method="deflate",
+        binary_b64encode=True,
+        no_cache=True,
+    )
+    assert route.endpoint == funct
+    assert route.methods == ["POST"]
+    assert route.cors
+    assert route.token == "Yo"
+    assert route.compression == "deflate"
+    assert route.b64encode
+    assert route.no_cache
+
+
+def test_RouteEntry_invalidCompression():
+    """Should work as expected."""
+    with pytest.raises(ValueError):
+        proxy.RouteEntry(
+            funct,
+            "my-function",
+            "/endpoint/test/<id>",
+            payload_compression_method="nope",
+        )
+
+
 def test_API_init():
     """Should work as expected."""
     app = proxy.API(name="test")
@@ -1194,3 +1238,64 @@ def test_proxy_API_badcache():
 
         for h in app.log.handlers:
             app.log.removeHandler(h)
+
+
+def test_proxy_API_RouteNoCache():
+    """Test proxy with caching."""
+    cache = Mock(LambdaProxyCacheBase)
+    cache.get.return_value = ("OK", "text/plain", "heyyyy")
+
+    app = proxy.API(name="test", cache_layer=cache)
+    funct = Mock(__name__="Mock", return_value=("OK", "text/plain", "heyyyy"))
+    app._add_route("/test/<string:user>/<name>", funct, methods=["GET"], cors=True)
+
+    funct = Mock(__name__="Mock", return_value=("OK", "text/plain", "yoooo"))
+    app._add_route("/test/<int:id>", funct, methods=["GET"], cors=True, no_cache=True)
+
+    event = {
+        "path": "/test/remote/pixel",
+        "httpMethod": "GET",
+        "headers": {},
+        "queryStringParameters": {},
+    }
+    resp = {
+        "body": "heyyyy",
+        "headers": {
+            "Access-Control-Allow-Credentials": "true",
+            "Access-Control-Allow-Methods": "GET",
+            "Access-Control-Allow-Origin": "*",
+            "Content-Type": "text/plain",
+        },
+        "statusCode": 200,
+    }
+    res = app(event, {})
+    assert res == resp
+    funct.assert_not_called()
+    cache.get.assert_called_once()
+    cache.set.assert_not_called()
+    cache.reset_mock()
+
+    event = {
+        "path": "/test/1",
+        "httpMethod": "GET",
+        "headers": {},
+        "queryStringParameters": {},
+    }
+    resp = {
+        "body": "yoooo",
+        "headers": {
+            "Access-Control-Allow-Credentials": "true",
+            "Access-Control-Allow-Methods": "GET",
+            "Access-Control-Allow-Origin": "*",
+            "Content-Type": "text/plain",
+        },
+        "statusCode": 200,
+    }
+    res = app(event, {})
+    assert res == resp
+    funct.assert_called_once()
+    cache.get.assert_not_called()
+    cache.set.assert_not_called()
+
+    for h in app.log.handlers:
+        app.log.removeHandler(h)

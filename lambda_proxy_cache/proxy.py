@@ -1,12 +1,12 @@
 """Translate request from AWS api-gateway."""
 
-from typing import Any, Dict
+from typing import Any, Callable, Dict, List, Tuple
 
 import json
 import logging
 import hashlib
 
-from lambda_proxy.proxy import API as LambdaProxyApi
+from lambda_proxy import proxy
 from lambda_proxy_cache.backends.base import LambdaProxyCacheBase
 
 
@@ -17,7 +17,44 @@ def get_hash(**kwargs: Any) -> str:
     ).hexdigest()
 
 
-class API(LambdaProxyApi):
+class RouteEntry(proxy.RouteEntry):
+    """API Route."""
+
+    def __init__(
+        self,
+        endpoint: Callable,
+        path: str,
+        methods: List = ["GET"],
+        cors: bool = False,
+        token: bool = False,
+        payload_compression_method: str = "",
+        binary_b64encode: bool = False,
+        ttl=None,
+        description: str = None,
+        tag: Tuple = None,
+        no_cache: bool = False,
+    ) -> None:
+        """Initialize route object."""
+        self.endpoint = endpoint
+        self.path = path
+        self.route_regex = proxy._path_to_regex(path)
+        self.openapi_path = proxy._path_to_openapi(self.path)
+        self.methods = methods
+        self.cors = cors
+        self.token = token
+        self.compression = payload_compression_method
+        self.b64encode = binary_b64encode
+        self.ttl = ttl
+        self.description = description or self.endpoint.__doc__
+        self.tag = tag
+        self.no_cache = no_cache
+        if self.compression and self.compression not in ["gzip", "zlib", "deflate"]:
+            raise ValueError(
+                f"'{payload_compression_method}' is not a supported compression"
+            )
+
+
+class API(proxy.API):
     """API."""
 
     def __init__(
@@ -47,6 +84,43 @@ class API(LambdaProxyApi):
         if cache_layer and not isinstance(cache_layer, LambdaProxyCacheBase):
             raise TypeError("cache_layer must be an instance of LambdaProxyCacheBase")
         self.cache_layer = cache_layer
+
+    def _add_route(self, path: str, endpoint: callable, **kwargs) -> None:
+        methods = kwargs.pop("methods", ["GET"])
+        cors = kwargs.pop("cors", False)
+        token = kwargs.pop("token", "")
+        payload_compression = kwargs.pop("payload_compression_method", "")
+        binary_encode = kwargs.pop("binary_b64encode", False)
+        ttl = kwargs.pop("ttl", None)
+        description = kwargs.pop("description", None)
+        tag = kwargs.pop("tag", None)
+        no_cache = kwargs.pop("no_cache", None)
+
+        if kwargs:
+            raise TypeError(
+                "TypeError: route() got unexpected keyword "
+                "arguments: %s" % ", ".join(list(kwargs))
+            )
+
+        if path in self.routes:
+            raise ValueError(
+                'Duplicate route detected: "{}"\n'
+                "URL paths must be unique.".format(path)
+            )
+
+        self.routes[path] = RouteEntry(
+            endpoint,
+            path,
+            methods,
+            cors,
+            token,
+            payload_compression,
+            binary_encode,
+            ttl,
+            description,
+            tag,
+            no_cache,
+        )
 
     def __call__(self, event: Dict, context: Dict):
         """Initialize route and handlers."""
@@ -109,11 +183,19 @@ class API(LambdaProxyApi):
         req.update(dict(app_route_id=f"{resource_path}-{self.name}-{self.version}"))
         request_hash = get_hash(**req)
 
-        response = self.cache_layer.get(request_hash) if self.cache_layer else None
+        response = (
+            self.cache_layer.get(request_hash)
+            if self.cache_layer and not route_entry.no_cache
+            else None
+        )
         if not response:
             try:
                 response = route_entry.endpoint(**function_kwargs)
-                if self.cache_layer and response[0] == "OK":
+                if (
+                    self.cache_layer
+                    and response[0] == "OK"
+                    and not route_entry.no_cache
+                ):
                     self.cache_layer.set(request_hash, response)
 
             except Exception as err:
