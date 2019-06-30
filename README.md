@@ -19,7 +19,7 @@ Or install from source:
 
 ```bash
 $ git clone https://github.com/vincentsarago/lambda-proxy-cache.git
-$ cd lambda-proxy
+$ cd lambda-proxy-cache
 $ pip install -U pip
 $ pip install -e .
 ```
@@ -30,11 +30,19 @@ $ pip install -e .
 from lambda_proxy_cache.proxy import API
 from lambda_proxy_cache.backends.memcache import MemcachedCache
 
-cache = MemcachedCache()
-APP = API(name="app", cache_layer=cache)
+app = API(name="app", cache_layer=MemcachedCache("MyHostURL"))
 
-@APP.route('/test/tests/<id>', methods=['GET'], cors=True)
-def print_id(id):
+@app.route('/user/<name>')
+def print_name(name):
+    # Do something here
+    ...
+    return ('OK', 'plain/text', name)
+
+# By adding `no_cache=True` we tell the proxy to not use the cache
+@app.route('/user/<name>/id', no_cache=True)
+def print_id(name):
+    # Do something here
+    ...
     return ('OK', 'plain/text', id)
 ```
 
