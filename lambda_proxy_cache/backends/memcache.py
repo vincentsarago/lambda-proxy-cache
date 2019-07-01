@@ -4,7 +4,7 @@ from typing import Dict
 
 import bmemcached
 
-from lambda_proxy.cache.base import LambdaProxyCacheBase
+from lambda_proxy_cache.backends.base import LambdaProxyCacheBase
 
 
 class MemcachedCache(LambdaProxyCacheBase):
