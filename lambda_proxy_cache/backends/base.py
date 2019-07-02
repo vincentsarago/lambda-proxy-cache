@@ -23,22 +23,6 @@ class LambdaProxyCacheBase(abc.ABC):
         """
 
     @abc.abstractmethod
-    def add(self, key: str, value) -> bool:
-        """
-        Add item in db.
-
-        Parameters
-        ----------
-        key: string
-        value:
-
-        Returns
-        -------
-        bool
-
-        """
-
-    @abc.abstractmethod
     def get(self, key: str):
         """
         Get item in db.
