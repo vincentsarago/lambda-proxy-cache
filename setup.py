@@ -8,6 +8,7 @@ with open("README.md") as f:
 inst_reqs = ["lambda-proxy~=4.1"]
 
 extra_reqs = {
+    "aws": ["boto3"],
     "memcache": ["python-binary-memcached"],
     "test": ["pytest", "pytest-cov", "mock"],
     "dev": ["pytest", "pytest-cov", "mock", "pre-commit"],
@@ -15,7 +16,7 @@ extra_reqs = {
 
 setup(
     name="lambda-proxy-cache",
-    version="0.0.1dev3",
+    version="0.0.1dev4",
     description=u"Add cache to lambda-proxy",
     long_description=readme,
     long_description_content_type="text/markdown",
