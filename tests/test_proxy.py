@@ -534,7 +534,7 @@ def test_API_routeURL():
         "queryStringParameters": {},
     }
     resp = {
-        "body": '{"errorMessage": "Missing route parameter"}',
+        "body": '{"errorMessage": "Missing or invalid path"}',
         "headers": {"Content-Type": "application/json"},
         "statusCode": 400,
     }
