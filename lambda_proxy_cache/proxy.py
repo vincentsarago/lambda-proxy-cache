@@ -3,6 +3,7 @@
 from typing import Any, Dict
 
 import json
+import base64
 import hashlib
 
 from lambda_proxy import proxy
@@ -133,8 +134,11 @@ class API(proxy.API):
 
         function_kwargs = self._get_matching_args(route_entry, self.request_path.path)
         function_kwargs.update(request_params.copy())
-        if http_method == "POST":
-            function_kwargs.update(dict(body=event.get("body")))
+        if http_method == "POST" and event.get("body"):
+            body = event["body"]
+            if event.get("isBase64Encoded", "") == "true":
+                body = base64.b64decode(body).decode()
+            function_kwargs.update(dict(body=body))
 
         req = function_kwargs.copy()
         req.update(

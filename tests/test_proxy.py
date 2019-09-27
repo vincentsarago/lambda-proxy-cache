@@ -764,7 +764,7 @@ def test_API_functionError():
 
 
 def test_API_Post():
-    """SHould work as expected on POST request."""
+    """Should work as expected on POST request."""
     app = proxy.API(name="test")
     funct = Mock(__name__="Mock", return_value=("OK", "text/plain", "heyyyy"))
     app._add_route("/test/<user>", funct, methods=["GET", "POST"], cors=True)
@@ -789,6 +789,28 @@ def test_API_Post():
     res = app(event, {})
     assert res == resp
     funct.assert_called_with(user="remotepixel", body=b"0001")
+
+    event = {
+        "path": "/test/remotepixel",
+        "httpMethod": "POST",
+        "headers": {},
+        "queryStringParameters": {},
+        "body": b"eyJ5byI6ICJ5byJ9",
+        "isBase64Encoded": "true",
+    }
+    resp = {
+        "body": "heyyyy",
+        "headers": {
+            "Access-Control-Allow-Credentials": "true",
+            "Access-Control-Allow-Methods": "GET,POST",
+            "Access-Control-Allow-Origin": "*",
+            "Content-Type": "text/plain",
+        },
+        "statusCode": 200,
+    }
+    res = app(event, {})
+    assert res == resp
+    funct.assert_called_with(user="remotepixel", body='{"yo": "yo"}')
 
     event = {
         "path": "/test/remotepixel",
