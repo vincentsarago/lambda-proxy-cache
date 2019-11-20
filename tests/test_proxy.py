@@ -796,7 +796,7 @@ def test_API_Post():
         "headers": {},
         "queryStringParameters": {},
         "body": b"eyJ5byI6ICJ5byJ9",
-        "isBase64Encoded": "true",
+        "isBase64Encoded": True,
     }
     resp = {
         "body": "heyyyy",
