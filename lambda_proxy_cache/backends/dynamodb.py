@@ -46,6 +46,8 @@ class DynamoDBCache(LambdaProxyCacheBase):
                     "ttl": {"N": str(ttl)},
                 },
             )
+            return True
+
         except Exception:
             return None
 

@@ -32,14 +32,14 @@ from lambda_proxy_cache.backends.memcache import MemcachedCache
 
 app = API(name="app", cache_layer=MemcachedCache("MyHostURL"))
 
-@app.route('/user/<name>')
+@app.get('/user/<name>')
 def print_name(name):
     # Do something here
     ...
     return ('OK', 'plain/text', name)
 
 # By adding `no_cache=True` we tell the proxy to not use the cache
-@app.route('/user/<name>/id', no_cache=True)
+@app.get('/user/<name>/id', no_cache=True)
 def print_id(name):
     # Do something here
     ...

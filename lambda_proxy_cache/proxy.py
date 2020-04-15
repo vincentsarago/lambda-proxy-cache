@@ -1,10 +1,11 @@
 """Translate request from AWS api-gateway."""
 
-from typing import Any, Dict
+from typing import Any, Callable, Dict
 
 import json
 import base64
 import hashlib
+import warnings
 
 from lambda_proxy import proxy
 from lambda_proxy_cache.backends.base import LambdaProxyCacheBase
@@ -37,16 +38,24 @@ class API(proxy.API):
             raise TypeError("cache_layer must be an instance of LambdaProxyCacheBase")
         self.cache_layer = cache_layer
 
-    def _add_route(self, path: str, endpoint: callable, **kwargs) -> None:
+    def _add_route(self, path: str, endpoint: Callable, **kwargs) -> None:
         methods = kwargs.pop("methods", ["GET"])
         cors = kwargs.pop("cors", False)
         token = kwargs.pop("token", "")
         payload_compression = kwargs.pop("payload_compression_method", "")
         binary_encode = kwargs.pop("binary_b64encode", False)
         ttl = kwargs.pop("ttl", None)
+        cache_control = kwargs.pop("cache_control", None)
         description = kwargs.pop("description", None)
         tag = kwargs.pop("tag", None)
         no_cache = kwargs.pop("no_cache", None)
+
+        if ttl:
+            warnings.warn(
+                "ttl will be deprecated in 6.0.0, please use 'cache-control'",
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
         if kwargs:
             raise TypeError(
@@ -54,25 +63,28 @@ class API(proxy.API):
                 "arguments: %s" % ", ".join(list(kwargs))
             )
 
-        if path in self.routes:
-            raise ValueError(
-                'Duplicate route detected: "{}"\n'
-                "URL paths must be unique.".format(path)
-            )
+        for method in methods:
+            if self._checkroute(path, method):
+                raise ValueError(
+                    'Duplicate route detected: "{}"\n'
+                    "URL paths must be unique.".format(path)
+                )
 
-        self.routes[path] = RouteEntry(
+        route = RouteEntry(
             endpoint,
             path,
-            methods=methods,
-            cors=cors,
-            token=token,
-            payload_compression_method=payload_compression,
-            binary_b64encode=binary_encode,
-            ttl=ttl,
-            description=description,
-            tag=tag,
+            methods,
+            cors,
+            token,
+            payload_compression,
+            binary_encode,
+            ttl,
+            cache_control,
+            description,
+            tag,
             no_cache=no_cache,
         )
+        self.routes.append(route)
 
     def __call__(self, event: Dict, context: Dict):
         """Initialize route and handlers."""
@@ -96,20 +108,20 @@ class API(proxy.API):
                 json.dumps({"errorMessage": "Missing or invalid path"}),
             )
 
-        if not self._url_matching(self.request_path.path):
+        http_method = event["httpMethod"]
+        route_entry = self._url_matching(self.request_path.path, http_method)
+        if not route_entry:
             return self.response(
                 "NOK",
                 "application/json",
                 json.dumps(
                     {
-                        "errorMessage": "No view function for: {}".format(
-                            self.request_path.path
+                        "errorMessage": "No view function for: {} - {}".format(
+                            http_method, self.request_path.path
                         )
                     }
                 ),
             )
-
-        route_entry = self.routes[self._url_matching(self.request_path.path)]
 
         request_params = event.get("queryStringParameters", {}) or {}
         if route_entry.token:
@@ -120,16 +132,7 @@ class API(proxy.API):
                     json.dumps({"message": "Invalid access token"}),
                 )
 
-        http_method = event["httpMethod"]
-        if http_method not in route_entry.methods:
-            return self.response(
-                "NOK",
-                "application/json",
-                json.dumps(
-                    {"errorMessage": "Unsupported method: {}".format(http_method)}
-                ),
-            )
-
+        # remove access_token from kwargs
         request_params.pop("access_token", False)
 
         function_kwargs = self._get_matching_args(route_entry, self.request_path.path)

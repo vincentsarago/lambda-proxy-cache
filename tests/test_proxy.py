@@ -73,7 +73,7 @@ def test_API_init():
     """Should work as expected."""
     app = proxy.API(name="test")
     assert app.name == "test"
-    assert len(list(app.routes.keys())) == 3
+    assert len(list(app.routes)) == 3
     assert not app.debug
     assert app.log.getEffectiveLevel() == 40  # ERROR
 
@@ -86,7 +86,7 @@ def test_API_noDocs():
     """Do not set default documentation routes."""
     app = proxy.API(name="test", add_docs=False)
     assert app.name == "test"
-    assert len(list(app.routes.keys())) == 0
+    assert len(list(app.routes)) == 0
     assert not app.debug
     assert app.log.getEffectiveLevel() == 40  # ERROR
 
@@ -120,7 +120,7 @@ def test_API_logDebug():
 def test_API_addRoute():
     """Add and parse route."""
     app = proxy.API(name="test")
-    assert len(list(app.routes.keys())) == 3
+    assert len(list(app.routes)) == 3
 
     app._add_route("/endpoint/test/<id>", funct, methods=["GET"], cors=True, token="yo")
     assert app.routes
@@ -548,7 +548,7 @@ def test_API_routeURL():
         "queryStringParameters": {},
     }
     resp = {
-        "body": '{"errorMessage": "No view function for: /users/remotepixel"}',
+        "body": '{"errorMessage": "No view function for: GET - /users/remotepixel"}',
         "headers": {"Content-Type": "application/json"},
         "statusCode": 400,
     }
@@ -562,7 +562,7 @@ def test_API_routeURL():
         "queryStringParameters": {},
     }
     resp = {
-        "body": '{"errorMessage": "Unsupported method: POST"}',
+        "body": '{"errorMessage": "No view function for: POST - /test/remotepixel"}',
         "headers": {"Content-Type": "application/json"},
         "statusCode": 400,
     }
@@ -576,7 +576,7 @@ def test_API_routeURL():
         "queryStringParameters": {},
     }
     resp = {
-        "body": '{"errorMessage": "No view function for: /users/remotepixel"}',
+        "body": '{"errorMessage": "No view function for: GET - /users/remotepixel"}',
         "headers": {"Content-Type": "application/json"},
         "statusCode": 400,
     }
@@ -590,7 +590,7 @@ def test_API_routeURL():
         "queryStringParameters": {},
     }
     resp = {
-        "body": '{"errorMessage": "No view function for: /test/users/remotepixel"}',
+        "body": '{"errorMessage": "No view function for: GET - /test/users/remotepixel"}',
         "headers": {"Content-Type": "application/json"},
         "statusCode": 400,
     }

@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 with open("README.md") as f:
     readme = f.read()
 
-inst_reqs = ["lambda-proxy~=5.0"]
+inst_reqs = ["lambda-proxy~=5.2"]
 
 extra_reqs = {
     "aws": ["boto3"],
@@ -16,7 +16,7 @@ extra_reqs = {
 
 setup(
     name="lambda-proxy-cache",
-    version="0.0.2",
+    version="0.0.3",
     description=u"Add cache to lambda-proxy",
     long_description=readme,
     long_description_content_type="text/markdown",
