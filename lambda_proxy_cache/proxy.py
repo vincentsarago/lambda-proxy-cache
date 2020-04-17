@@ -182,4 +182,5 @@ class API(proxy.API):
             compression=route_entry.compression,
             b64encode=route_entry.b64encode,
             ttl=route_entry.ttl,
+            cache_control=route_entry.cache_control,
         )
